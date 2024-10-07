@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	fmt.Println("winda sosat")
+	fmt.Println("")
 }
