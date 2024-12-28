@@ -12,6 +12,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"main.go/internal/config"
 	"main.go/internal/user"
+	"main.go/internal/user/db"
+	"main.go/pkg/client/mongodb"
 	"main.go/pkg/logging"
 )
 
@@ -21,6 +23,15 @@ func main() {
 	router := httprouter.New()
 
 	cfg := config.GetConfig()
+
+	mongoDBClient, err := mongodb.NewClient()
+	if err != nil {
+		panic(err)
+	}
+
+	db.NewStorage(mongoDBClient, "users", logger)
+
+	db.NewStorage(cfg)
 
 	logger.Info("register user handler")
 	handler := user.NewHandler(logger)
@@ -43,10 +54,10 @@ func start(router *httprouter.Router, cfg *config.Config) {
 		}
 		logger.Info("create socket")
 		socketPath := path.Join(appDir, "app.sock")
-		logger.Debugf("socket path: %s", socketPath)
 
 		logger.Info("listen unix socket")
 		listener, listenErr = net.Listen("unix", socketPath)
+		logger.Infof("server is listening unix socket: %s", socketPath)
 	} else {
 		logger.Info("listen tcp")
 		listener, listenErr = net.Listen("tcp", fmt.Sprintf("%s:%s", cfg.Listen.BindIp, cfg.Listen.Port))
@@ -62,6 +73,5 @@ func start(router *httprouter.Router, cfg *config.Config) {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
-
 	logger.Fatal(server.Serve(listener))
 }
